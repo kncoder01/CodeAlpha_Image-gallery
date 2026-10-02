@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumina | Modern Interactive Gallery</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Smooth card scale on hover */
+    .gallery-card {
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, opacity 0.3s ease;
+      will-change: transform, opacity;
+    }
+    
+    .gallery-card:hover {
+      transform: translateY(-6px);
+    }
+    
+    .gallery-img {
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .gallery-card:hover .gallery-img {
+      transform: scale(1.08);
+    }
+
+    /* Modal Backdrop Blur Animation */
+    .lightbox-backdrop {
+      transition: opacity 0.3s ease-out;
+    }
+
+    /* Subtle custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+  <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="text-xl font-bold tracking-tight text-white">Lumina<span class="text-indigo-400">Gallery</span></span>
+          <span class="hidden sm:inline-block ml-2 px-2 py-0.5 text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">Internship Project</span>
+        </div>
+      </div>
+
+      <!-- Quick Action Counter Badge -->
+      <div class="text-xs sm:text-sm font-medium text-slate-400">
+        Showing <span id="itemCountBadge" class="text-indigo-400 font-bold">12</span> captures
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+    
+    <!-- Title & Subtitle -->
+    <div class="text-center max-w-2xl mx-auto mb-10">
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+        Visual Stories & <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">Moments</span>
+      </h1>
+      <p class="mt-3 text-slate-400 text-sm sm:text-base">
+        Explore high-resolution curated photography across landscapes, architecture, nature, and modern technology.
+      </p>
+    </div>
+
+    <!-- Search Bar & Filters -->
+    <div class="space-y-6 mb-12">
+      <!-- Search input container -->
+      <div class="max-w-md mx-auto relative">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          id="searchInput" 
+          placeholder="Search by title, location, or tag..." 
+          class="w-full pl-11 pr-10 py-3 bg-slate-900 border border-slate-700/80 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all text-sm shadow-inner"
+        />
+        <button 
+          id="clearSearchBtn" 
+          class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white"
+          title="Clear search"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="flex items-center justify-center flex-wrap gap-2 sm:gap-3" id="categoryContainer">
+        <button data-category="all" class="filter-btn active-pill px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+          All Works
+        </button>
+        <button data-category="nature" class="filter-btn px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800">
+          Nature
+        </button>
+        <button data-category="architecture" class="filter-btn px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800">
+          Architecture
+        </button>
+        <button data-category="animals" class="filter-btn px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800">
+          Wildlife
+        </button>
+        <button data-category="travel" class="filter-btn px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800">
+          Travel
+        </button>
+        <button data-category="tech" class="filter-btn px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800">
+          Technology
+        </button>
+      </div>
+    </div>
+
+    <div id="galleryGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <!-- Cards will be populated by JavaScript -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="noResults" class="hidden text-center py-20">
+      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/80 flex items-center justify-center text-slate-500">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <h3 class="text-lg font-semibold text-slate-200">No photos matching your criteria</h3>
+      <p class="text-sm text-slate-400 mt-1 max-w-sm mx-auto">Try checking your spelling or choosing another category filter.</p>
+      <button id="resetFiltersBtn" class="mt-4 px-4 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-colors">
+        Reset Search & Filters
+      </button>
+    </div>
+
+  </main>
+
+  <div id="lightbox" class="fixed inset-0 z-50 hidden flex items-center justify-center p-2 sm:p-6" role="dialog" aria-modal="true">
+    <!-- Backdrop Blur -->
+    <div id="lightboxBackdrop" class="absolute inset-0 bg-slate-950/90 backdrop-blur-xl lightbox-backdrop opacity-0"></div>
+
+    <!-- Lightbox Container -->
+    <div class="relative z-10 w-full max-w-5xl bg-slate-900/90 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+      
+      <!-- Top Action Bar -->
+      <div class="px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/95">
+        <div class="flex items-center space-x-3">
+          <span id="lbCounter" class="text-xs font-semibold tracking-wider text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700/50">
+            1 / 12
+          </span>
+          <span id="lbCategoryTag" class="text-xs font-medium uppercase tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full">
+            Nature
+          </span>
+        </div>
+
+        <!-- Controls (Zoom, Share, Close) -->
+        <div class="flex items-center space-x-1.5 sm:space-x-2">
+          <!-- Zoom Button -->
+          <button id="zoomBtn" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors" title="Toggle Zoom">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"></path>
+            </svg>
+          </button>
+          
+          <!-- Share notification button -->
+          <button id="shareBtn" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors" title="Copy Link">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+            </svg>
+          </button>
+
+          <!-- Close Modal Button -->
+          <button id="closeModalBtn" class="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors ml-1" title="Close (Esc)">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Stage: Image and Arrow Buttons -->
+      <div class="relative flex-1 bg-black/60 flex items-center justify-center p-3 sm:p-6 overflow-hidden min-h-[300px] select-none">
+        
+        <!-- Previous Button -->
+        <button id="prevBtn" class="absolute left-3 sm:left-5 z-20 p-2.5 sm:p-3 rounded-full bg-slate-900/80 hover:bg-indigo-600 text-white shadow-xl backdrop-blur-md transition-all hover:scale-110 active:scale-95 border border-slate-700/50" aria-label="Previous Image">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+          </svg>
+        </button>
+
+        <!-- Image Container with Zoom support -->
+        <div id="imageWrapper" class="max-h-[62vh] max-w-full flex items-center justify-center overflow-auto transition-transform duration-300">
+          <img 
+            id="lbImage" 
+            src="" 
+            alt="Preview" 
+            class="max-h-[60vh] max-w-full rounded-xl object-contain shadow-2xl transition-transform duration-300 select-none pointer-events-auto"
+          />
+        </div>
+
+        <!-- Next Button -->
+        <button id="nextBtn" class="absolute right-3 sm:right-5 z-20 p-2.5 sm:p-3 rounded-full bg-slate-900/80 hover:bg-indigo-600 text-white shadow-xl backdrop-blur-md transition-all hover:scale-110 active:scale-95 border border-slate-700/50" aria-label="Next Image">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Bottom Info Caption Bar -->
+      <div class="px-6 py-4 bg-slate-900 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h2 id="lbTitle" class="text-base sm:text-lg font-bold text-white tracking-tight">Image Title</h2>
+          <p id="lbDesc" class="text-xs sm:text-sm text-slate-400">Image Description & location details.</p>
+        </div>
+
+        <div class="text-xs text-slate-500 flex items-center gap-3">
+          <span class="inline-flex items-center"><kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-[10px] text-slate-400 mr-1">◀</kbd><kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-[10px] text-slate-400 mr-1">▶</kbd> Keys</span>
+          <span class="inline-flex items-center"><kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-[10px] text-slate-400 mr-1">ESC</kbd> Close</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-indigo-600 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-medium flex items-center space-x-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+    </svg>
+    <span id="toastMessage">Link copied to clipboard!</span>
+  </div>
+
+  <script>
+    /**
+     * Curated dataset with reliable Unsplash high-res imagery
+     */
+    const galleryData = [
+      {
+        id: 1,
+        title: "Misty Alpine Ridge",
+        category: "nature",
+        description: "Dolomites mountain peaks shrouded in morning morning clouds.",
+        url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 2,
+        title: "Modern Spiral Helix",
+        category: "architecture",
+        description: "Geometric interior view of a contemporary architectural spiral staircase.",
+        url: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 3,
+        title: "Arctic Fox in Snow",
+        category: "animals",
+        description: "Curious wildlife portrait blending with pure winter tundra.",
+        url: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 4,
+        title: "Cybernetic Motherboard",
+        category: "tech",
+        description: "Intricate microchip circuitry glowing with neon LED reflections.",
+        url: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 5,
+        title: "Kyoto Lantern Street",
+        category: "travel",
+        description: "Traditional cobblestone alleyway in Gion during sunset hours.",
+        url: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 6,
+        title: "Emerald Forest Canopy",
+        category: "nature",
+        description: "Sun rays piercing through lush redwood giants after rainfall.",
+        url: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 7,
+        title: "Minimalist Concrete Vault",
+        category: "architecture",
+        description: "Brutalist architecture showcasing interplay of light, shadow, and angles.",
+        url: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 8,
+        title: "Regal Mountain Falcon",
+        category: "animals",
+        description: "Falcon perched atop an alpine outcrop scanning the valley below.",
+        url: "https://images.unsplash.com/photo-1544568100-847a948585b9?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1544568100-847a948585b9?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 9,
+        title: "Virtual Reality Workspace",
+        category: "tech",
+        description: "Next-gen creative designer interacting with holographic spatial UI.",
+        url: "https://images.unsplash.com/photo-1535223289827-42f1e9919769?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1535223289827-42f1e9919769?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 10,
+        title: "Santorini Coastal Cliffs",
+        category: "travel",
+        description: "Whitewashed houses overlooking the deep turquoise Aegean sea.",
+        url: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 11,
+        title: "Cascading Emerald Falls",
+        category: "nature",
+        description: "Crystal clear water plunging into a hidden cavern basin.",
+        url: "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?auto=format&fit=crop&w=600&q=80"
+      },
+      {
+        id: 12,
+        title: "Golden Hour Skyscraper",
+        category: "architecture",
+        description: "Sunset reflections bouncing between glass facade metropolises.",
+        url: "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?auto=format&fit=crop&w=1200&q=80",
+        thumb: "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?auto=format&fit=crop&w=600&q=80"
+      }
+    ];
+
+    // State Variables
+    let currentCategory = 'all';
+    let searchQuery = '';
+    let filteredItems = [...galleryData];
+    let activeLightboxIndex = 0;
+    let isZoomed = false;
+
+    // DOM Elements
+    const galleryGrid = document.getElementById('galleryGrid');
+    const noResults = document.getElementById('noResults');
+    const itemCountBadge = document.getElementById('itemCountBadge');
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+
+    // Lightbox Elements
+    const lightbox = document.getElementById('lightbox');
+    const lightboxBackdrop = document.getElementById('lightboxBackdrop');
+    const lbImage = document.getElementById('lbImage');
+    const lbTitle = document.getElementById('lbTitle');
+    const lbDesc = document.getElementById('lbDesc');
+    const lbCounter = document.getElementById('lbCounter');
+    const lbCategoryTag = document.getElementById('lbCategoryTag');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const zoomBtn = document.getElementById('zoomBtn');
+    const shareBtn = document.getElementById('shareBtn');
+    const toast = document.getElementById('toast');
+
+    function renderGallery() {
+      // Filter logic
+      filteredItems = galleryData.filter(item => {
+        const matchesCategory = (currentCategory === 'all') || (item.category.toLowerCase() === currentCategory.toLowerCase());
+        const term = searchQuery.toLowerCase().trim();
+        const matchesSearch = term === '' || 
+                              item.title.toLowerCase().includes(term) || 
+                              item.description.toLowerCase().includes(term) || 
+                              item.category.toLowerCase().includes(term);
+        return matchesCategory && matchesSearch;
+      });
+
+      // Update badge
+      itemCountBadge.textContent = filteredItems.length;
+
+      // Handle empty state
+      if (filteredItems.length === 0) {
+        galleryGrid.innerHTML = '';
+        noResults.classList.remove('hidden');
+        return;
+      }
+      noResults.classList.add('hidden');
+
+      // Populate grid cards
+      galleryGrid.innerHTML = filteredItems.map((item, index) => {
+        return `
+          <div 
+            class="gallery-card group relative overflow-hidden rounded-2xl bg-slate-900 border border-slate-800/80 shadow-lg cursor-pointer"
+            onclick="openLightbox(${index})"
+            role="button"
+            tabindex="0"
+            aria-label="View ${item.title}"
+          >
+            <!-- Card Image -->
+            <div class="aspect-[4/3] w-full overflow-hidden bg-slate-800">
+              <img 
+                src="${item.thumb}" 
+                alt="${item.title}" 
+                loading="lazy"
+                class="gallery-img w-full h-full object-cover"
+                onerror="this.src='https://placehold.co/600x450/1e293b/94a3b8?text=Image+Unavailable'"
+              />
+            </div>
+
+            <!-- Category Badge -->
+            <div class="absolute top-3 left-3 z-10">
+              <span class="px-2.5 py-1 text-[11px] font-semibold tracking-wider uppercase rounded-full bg-slate-950/70 text-slate-200 backdrop-blur-md border border-slate-700/60 shadow">
+                ${item.category}
+              </span>
+            </div>
+
+            <!-- Hover Overlay -->
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5">
+              <div class="transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
+                <h3 class="text-base font-bold text-white leading-snug">${item.title}</h3>
+                <p class="text-xs text-slate-300 line-clamp-1 mt-1 font-normal">${item.description}</p>
+                <div class="mt-3 inline-flex items-center text-xs font-semibold text-indigo-400 group-hover:text-indigo-300">
+                  <span>Enlarge Preview</span>
+                  <svg class="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openLightbox(index) {
+      if (filteredItems.length === 0) return;
+      activeLightboxIndex = index;
+      updateLightboxContent();
+
+      // Show lightbox modal
+      lightbox.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden'); // Lock background scroll
+      
+      // Animate fade-in
+      setTimeout(() => {
+        lightboxBackdrop.classList.remove('opacity-0');
+        lightboxBackdrop.classList.add('opacity-100');
+      }, 10);
+    }
+
+    function updateLightboxContent() {
+      const item = filteredItems[activeLightboxIndex];
+      if (!item) return;
+
+      // Reset zoom state on change
+      resetZoom();
+
+      // Set image with subtle loader handling
+      lbImage.style.opacity = '0.5';
+      lbImage.src = item.url;
+      lbImage.onload = () => {
+        lbImage.style.opacity = '1';
+      };
+
+      lbTitle.textContent = item.title;
+      lbDesc.textContent = item.description;
+      lbCategoryTag.textContent = item.category;
+      lbCounter.textContent = `${activeLightboxIndex + 1} / ${filteredItems.length}`;
+    }
+
+    function closeLightbox() {
+      lightboxBackdrop.classList.remove('opacity-100');
+      lightboxBackdrop.classList.add('opacity-0');
+      
+      setTimeout(() => {
+        lightbox.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        resetZoom();
+      }, 200);
+    }
+
+    function nextImage() {
+      if (filteredItems.length === 0) return;
+      activeLightboxIndex = (activeLightboxIndex + 1) % filteredItems.length;
+      updateLightboxContent();
+    }
+
+    function prevImage() {
+      if (filteredItems.length === 0) return;
+      activeLightboxIndex = (activeLightboxIndex - 1 + filteredItems.length) % filteredItems.length;
+      updateLightboxContent();
+    }
+
+    function toggleZoom() {
+      isZoomed = !isZoomed;
+      if (isZoomed) {
+        lbImage.style.transform = 'scale(1.75)';
+        lbImage.style.cursor = 'zoom-out';
+      } else {
+        resetZoom();
+      }
+    }
+
+    function resetZoom() {
+      isZoomed = false;
+      lbImage.style.transform = 'scale(1)';
+      lbImage.style.cursor = 'zoom-in';
+    }
+
+    // Toast feedback helper
+    function showToast(text) {
+      const msg = document.getElementById('toastMessage');
+      if (text) msg.textContent = text;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    // Category Filter Buttons Click
+    filterButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterButtons.forEach(b => {
+          b.className = "filter-btn px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800";
+        });
+        btn.className = "filter-btn active-pill px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30";
+        
+        currentCategory = btn.getAttribute('data-category');
+        renderGallery();
+      });
+    });
+
+    // Search bar listener with debounced feel
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      if (searchQuery.trim().length > 0) {
+        clearSearchBtn.classList.remove('hidden');
+      } else {
+        clearSearchBtn.classList.add('hidden');
+      }
+      renderGallery();
+    });
+
+    // Clear search button
+    clearSearchBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      clearSearchBtn.classList.add('hidden');
+      renderGallery();
+      searchInput.focus();
+    });
+
+    // Reset filters from empty state
+    resetFiltersBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      searchQuery = '';
+      currentCategory = 'all';
+      filterButtons.forEach(b => {
+        b.className = "filter-btn px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-slate-800";
+      });
+      filterButtons[0].className = "filter-btn active-pill px-4 py-2 text-xs sm:text-sm font-medium rounded-full transition-all duration-200 bg-indigo-600 text-white shadow-lg shadow-indigo-600/30";
+      clearSearchBtn.classList.add('hidden');
+      renderGallery();
+    });
+
+    // Lightbox Controls Events
+    closeModalBtn.addEventListener('click', closeLightbox);
+    lightboxBackdrop.addEventListener('click', closeLightbox);
+    nextBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      nextImage();
+    });
+    prevBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      prevImage();
+    });
+    zoomBtn.addEventListener('click', toggleZoom);
+    lbImage.addEventListener('click', toggleZoom);
+
+    // Share link copy using standard clipboard API / execCommand fallback
+    shareBtn.addEventListener('click', () => {
+      const currentUrl = filteredItems[activeLightboxIndex]?.url || window.location.href;
+      try {
+        const dummy = document.createElement('input');
+        document.body.appendChild(dummy);
+        dummy.value = currentUrl;
+        dummy.select();
+        document.execCommand('copy');
+        document.body.removeChild(dummy);
+        showToast('Image URL copied to clipboard!');
+      } catch (err) {
+        showToast('Unable to copy URL');
+      }
+    });
+
+    // Keyboard Shortcuts (ArrowLeft, ArrowRight, Escape)
+    window.addEventListener('keydown', (e) => {
+      if (lightbox.classList.contains('hidden')) return;
+
+      if (e.key === 'Escape') {
+        closeLightbox();
+      } else if (e.key === 'ArrowRight') {
+        nextImage();
+      } else if (e.key === 'ArrowLeft') {
+        prevImage();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderGallery();
+    });
+  </script>
+</body>
+</html>
